@@ -1,7 +1,7 @@
 (function (d, w) {
 'use strict';
 
-var estimateRegEx = /^estimate: ([\d\.]+)$/im;
+var estimateRegEx = /^\[([\d\.]+)pt\]$/im;
 
 var debounce = function (func, wait, immediate) {
   var timeout;
@@ -18,10 +18,6 @@ var debounce = function (func, wait, immediate) {
   };
 };
 
-var pluralize = (value) => (
-  value === 1 ? '' : 's'
-);
-
 var resetStoryPointsForColumn = (column) => {
   const customElements = Array.from(column.getElementsByClassName('github-project-story-points'));
   for (let e of customElements) {
@@ -36,6 +32,10 @@ var resetStoryPointsForColumn = (column) => {
 };
 
 var titleWithTotalPoints = (title, points, unestimated) => {
+    var pluralize = (value) => (
+      value === 1 ? '' : 's'
+    );
+
     let unestimated_element = "";
     let points_element = "";
 
@@ -59,12 +59,9 @@ var addStoryPointsForColumn = (column) => {
     .from(column.getElementsByClassName('issue-card'))
     .filter(card => !card.classList.contains('sortable-ghost'))
     .map(card => {
-      const labels = Array
-        .from(card.getElementsByClassName('labels'))
-
       const estimateLabels = Array
         .from(card.getElementsByClassName('issue-card-label'))
-        .filter(label => label.innerText.includes('estimate'))
+        .filter(label => estimateRegEx.test(label.innerText))
 
       const firstEstimateText = (
         estimateLabels.length > 0 ? estimateLabels[0].innerText.trim() : null)
