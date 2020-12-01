@@ -44,7 +44,7 @@ var titleWithTotalPoints = (title, points, unestimated) => {
     }
 
     if (points > 0) {
-      points_element = `${points} points`;
+      points_element = `${points}pt`;
     }
 
     if (points_element && unestimated_element) {
@@ -92,9 +92,28 @@ var addStoryPointsForColumn = (column) => {
   if (columnStoryPoints || columnUnestimated) {
     columnCountElement.innerHTML = titleWithTotalPoints(columnCards.length, columnStoryPoints, columnUnestimated);
   }
+  return { points: columnStoryPoints, unestimated: columnUnestimated };
 };
 
 var resets = [];
+var total = {};
+
+const updateTotal = (column, points) => {
+// asdfasdf
+  const name = column.getElementsByClassName('js-project-column-name')[0].innerText;
+  total = { ...total, [name]: points };
+  const sum = Object.values(total).reduce((m, p) => m + p, 0);
+  let tgt = document.getElementsByClassName('total-point-of-stories')[0];
+  if (!tgt) {
+    let el = document.getElementsByClassName('project-header-controls')[0].previousElementSibling;
+    el = el.getElementsByTagName('button')[0];
+    let span = document.createElement("span");
+    span.classList.add("total-point-of-stories", "Counter", "Counter--gray-light");
+    el.prepend(span);
+    tgt = document.getElementsByClassName('total-point-of-stories')[0];
+  }
+  tgt.innerText = `(${sum}pt)`;
+}
 
 var start = debounce(() => {
   // Reset
@@ -110,11 +129,13 @@ var start = debounce(() => {
     for (let column of columns) {
       const addStoryPoints = ((c) => debounce(() => {
         resetStoryPointsForColumn(c);
-        addStoryPointsForColumn(c);
+        const { points } = addStoryPointsForColumn(c);
+        updateTotal(column, points);
       }, 50))(column);
       column.addEventListener('DOMSubtreeModified', addStoryPoints);
       column.addEventListener('drop', addStoryPoints);
-      addStoryPointsForColumn(column);
+      const { points } = addStoryPointsForColumn(column);
+      updateTotal(column, points);
       resets.push(((c) => () => {
         resetStoryPointsForColumn(c);
         column.removeEventListener('DOMSubtreeModified', addStoryPoints);
