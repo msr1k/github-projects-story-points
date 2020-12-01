@@ -71,38 +71,46 @@ var addStoryPointsForColumn = (column) => {
         [null, '0'])
 
       const storyPoints = parseFloat(match[1]) || 0;
+      const donePoints = card.getElementsByClassName('closed')[0] ? storyPoints : 0;
       const estimated = (match[0] !== null);
+
 
       return {
         element: card,
         estimated,
-        storyPoints
+        storyPoints,
+        donePoints,
       };
     });
   const columnCountElement = column.getElementsByClassName('js-column-card-count')[0];
 
   let columnStoryPoints = 0;
+  let columnDonePoints = 0;
   let columnUnestimated = 0;
 
   for (let card of columnCards) {
     columnStoryPoints += card.storyPoints;
+    columnDonePoints += card.donePoints;
     columnUnestimated += (card.estimated ? 0 : 1);
   }
   // Apply DOM changes:
   if (columnStoryPoints || columnUnestimated) {
     columnCountElement.innerHTML = titleWithTotalPoints(columnCards.length, columnStoryPoints, columnUnestimated);
   }
-  return { points: columnStoryPoints, unestimated: columnUnestimated };
+  return { points: columnStoryPoints, done: columnDonePoints, unestimated: columnUnestimated };
 };
 
 var resets = [];
 var total = {};
+var dones = {};
 
-const updateTotal = (column, points) => {
+const addStoryPointsForAll = (column, points, done) => {
 // asdfasdf
   const name = column.getElementsByClassName('js-project-column-name')[0].innerText;
   total = { ...total, [name]: points };
-  const sum = Object.values(total).reduce((m, p) => m + p, 0);
+  dones = { ...dones, [name]: done };
+  const tp = Object.values(total).reduce((m, p) => m + p, 0);
+  const dp = Object.values(dones).reduce((m, p) => m + p, 0);
   let tgt = document.getElementsByClassName('total-point-of-stories')[0];
   if (!tgt) {
     let el = document.getElementsByClassName('project-header-controls')[0].previousElementSibling;
@@ -112,7 +120,7 @@ const updateTotal = (column, points) => {
     el.prepend(span);
     tgt = document.getElementsByClassName('total-point-of-stories')[0];
   }
-  tgt.innerText = `(${sum}pt)`;
+  tgt.innerText = `${dp}pt / ${tp}pt`;
 }
 
 var start = debounce(() => {
@@ -129,13 +137,13 @@ var start = debounce(() => {
     for (let column of columns) {
       const addStoryPoints = ((c) => debounce(() => {
         resetStoryPointsForColumn(c);
-        const { points } = addStoryPointsForColumn(c);
-        updateTotal(column, points);
+        const { points, done } = addStoryPointsForColumn(c);
+        addStoryPointsForAll(column, points, done);
       }, 50))(column);
       column.addEventListener('DOMSubtreeModified', addStoryPoints);
       column.addEventListener('drop', addStoryPoints);
-      const { points } = addStoryPointsForColumn(column);
-      updateTotal(column, points);
+      const { points, done } = addStoryPointsForColumn(column);
+      addStoryPointsForAll(column, points, done);
       resets.push(((c) => () => {
         resetStoryPointsForColumn(c);
         column.removeEventListener('DOMSubtreeModified', addStoryPoints);
